@@ -4,55 +4,53 @@
 #define twoPi 6.28318
 #define pi 3.14159
 
-void readFile();
+//void readFile();
 
 double* linspace(double t0, double tf, int N);
 
 double* FourierSynthesizer(double* t, int N, double f0, double A,int order);
 
-void printFile(double * string1, double * string2, int N);
+void printFile(double * string1, double * string2 ,int N);
 
 int samplesPerPeriod = 1000;
 double f0,A;
-int D,nSample,O;
+int nSample,O;
 double dt,tau,T;
 
 int main()
 {
 	printf("Fourier Synthesizer\nReading file...\n ");
 
-	readFile();
+	//readFile();
+	f0 = 1000.00;
+	O = 50;
+	A = 1.0;
 
 	printf("Signal frequency:\t%lf Hz\n", f0);
 
 	printf("%d orders\n", O);
-
-	printf("Insert number periods:");
-	scanf("%d",D);
-
 
 	if(f0==0.0 || O==0 || A==0.0) {
         printf("unaccepted values");
         return 0;
     }
 
-    D = 1;
-	T=1000.0/f0; //esprimo in ms così da aumentare la precisione
+	T=2000.0/f0; //esprimo in ms così da aumentarne la precisione
 
-	nSample= D*samplesPerPeriod;
-	dt=T/samplesPerPeriod;
+	nSample= samplesPerPeriod;
+
+	dt = T/samplesPerPeriod;
 
 	printf("Period %lf\n",T);//DEBUG
-	printf("Tau %lf\n",tau);//DEBUG
 	printf("N samples %d\n",nSample);//DEBUG
 	printf("dt: %lf",dt);
 
-	double* t= linspace(0, (T*D) ,nSample);
+	double* t = linspace(0, T ,nSample);
 
-	double* x= FourierSynthesizer(t, nSample, (f0/1000.0), A, J);
+	double* x = FourierSynthesizer(t, nSample, (f0/1000.0), A, O);
 
 	printFile(t, x ,nSample);
-    printf("fine");
+    printf("return");
 	return 0;
 }
 
@@ -79,7 +77,7 @@ double* FourierSynthesizer(double* t, int N, double f0, double A,int order){
 	{
 	    for(int n=1; n<order+1; n++){
 
-            vector[i]+=((A/(2*n-1))* sin( (2*n-1)*omega*t[i] ));
+            vector[i]+=((A/(n))*(cos( (n)*omega*t[i] ) +sin( (n)*omega*t[i] )) );
 	    }
 	    //printf("n:%d  val:%lf\n",i,vector[i]);
 
@@ -89,18 +87,15 @@ double* FourierSynthesizer(double* t, int N, double f0, double A,int order){
 	return vector;
 }
 
-void readFile(char*)
+//void readFile(char*)
 
-void printFile(double * string1, double * string2, double * string3,int N){
+void printFile(double* string1, double* string2, int N){
 
 	FILE *file;
 
-	char template[5][50]={"t = [",
+	char template[3][50]={"close all\nt = [",
 						  "];\nx = [",
-						  "];\nt2 = [",
-						  "];\ny = [",
-						  "];\nplot(t,x);\nhold on, plot(t2,y);",
-	};
+						  "];\nplot(t,x);"};
 
 	file = fopen("signal.m", "w");
 	if(file== NULL){
@@ -120,23 +115,9 @@ void printFile(double * string1, double * string2, double * string3,int N){
 
 	fprintf(file, "%s", template[2]);
 
-	for (int i = 0; i < N-1; i++)
-		fprintf(file, "%lf ", string1[i]);
-
-	fprintf(file, "%s", template[3]);
-
-	for (int i = 0; i < N-1; i++)
-		fprintf(file, "%lf ", string3[i]);
-
-	fprintf(file, "%s", template[4]);
-
 	fclose(file);
 
 	printf("done!\n");
-
-	//free(string1);
-	//free(string2);
-	//free(string3);
 
 }
 
