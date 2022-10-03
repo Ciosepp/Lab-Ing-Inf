@@ -77,7 +77,8 @@ int main()
     	fprintf(f, "%f ", cont[i]);
     }
 
-    fprintf(f, "];\n\nfigure;\n\nplot(x, f);print(gcf, 'gauss', '-dpng', '-r300');");
+    //fprintf(f, "];\n\nfigure;\n\nplot(x, f);print(gcf, 'gauss', '-dpng', '-r300');");
+    fprintf(f, "];\n\nfigure;\n\nplot(x, f);");
     fclose(f);
 
 
@@ -99,7 +100,7 @@ int main()
 
     for(i=0; i<Nbin-1; i++){
 
-        .cont[i] /= sum;
+        cont[i] /= sum;
     	sum2 += cont[i];
     }
     printf("\n%f \n\n", sum2);
@@ -123,7 +124,8 @@ int main()
     	fprintf(g, "%f ", cont[i]);
     }
 
-    fprintf(g,"];\n\nfigure;\n\nplot(x, f);print(gcf, 'exp', '-dpng', '-r300');");
+    //fprintf(g,"];\n\nfigure;\n\nplot(x, f);print(gcf, 'exp', '-dpng', '-r300');");
+    fprintf(g,"];\n\nfigure;\n\nplot(x, f);");
 
     fclose(g);
 
