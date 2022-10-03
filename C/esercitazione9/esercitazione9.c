@@ -33,7 +33,6 @@ int main()
 	for(i=0; i<N; i++){
 
 		a[i] = randn(mu, sigma);
-        //printf("%f \n",a[i]);
 		b[i] = rande(mu);
     }
 
@@ -41,111 +40,90 @@ int main()
 
     cont = histocounts(a, N, binVector, Nbin);
 
-    if(debug == 1){
-
-        printf("histocounts result:\n");
-        for(int i=0; i< Nbin-1; i++){
-
-            //printf("%f ",cont[i]);
-        }
-    }
-    printf("mean:\n");
-    for(i=0; i<Nbin-2; i++){
-
-    	mean[i] = (binVector[i] + binVector[i+1]) / 2;
-        sum += mean[i];
-    }
-
-    //riscrivo cont normalizandolo
-    printf("Stampo vett cont normalizzato\n");
+    printf("\n\n------------ Guass ------------\n");
 
     for(i=0; i<Nbin-1; i++){
-    	cont[i] /= sum;
-    	//printf("%f  ", cont[i]);
-    	sum2 += cont[i];
-    	printf("%f  ", cont[i]);
+
+    	mean[i] = (binVector[i] + binVector[i+1]) / 2;
+        sum += cont[i];
     }
 
-    sum=0;
-    sum2=0;
+    printf("gauss sum: %f\n",sum);
+
+    for(i=0; i<Nbin-1; i++){
+
+        cont[i] /= sum;
+        sum2 += cont[i];
+    }
+    printf("sum2: %f\n\n", sum2);
 
     f=fopen("pdfGauss.m", "w");
 
-    if (f==NULL){ //verifica apertura
+    if (f==NULL){
     	printf("pdfGauss.m non aperto\n");
     	exit(EXIT_FAILURE);
     }
 
-    //inizio creazione pdfGauss.m
     fprintf(f,"x = [");
 
-    for(i=0;i<Nbin-2;i++){
+    for(i=0;i<Nbin-1;i++){
 
     	fprintf(f, "%f, ", mean[i]);
     }
-    fprintf(f, "];\n\n");    //e' il vettore mean
 
-    fprintf(f,"f = [");
-    for(i=0;i<Nbin-2;i++){
+    fprintf(f, "];\n\nf = [");
+
+    for(i=0;i<Nbin-1;i++){
     	fprintf(f, "%f ", cont[i]);
     }
-    fprintf(f, "];\n\n");    //e' il vettore cont normalizzato
-    fprintf(f,"figure;\n\n");
-    fprintf(f,"plot(x, f);\n\n");  //fine creazione pdfGauss.m
+
+    fprintf(f, "];\n\nfigure;\n\nplot(x, f);print(gcf, 'gauss', '-dpng', '-r300');");
     fclose(f);
 
-    //Exp
-    printf("Exp\n");
 
-    binVector = linspace(0.0, 5.0*mu, Nbin);
+    printf("\n\n------------ Exp ------------\n");
+
+    sum=0;
+    sum2=0;
+
+    binVector = linspace(0.0, (5.0*mu), Nbin);
 
     cont = histocounts(b, N, binVector, Nbin);
 
-    printf("Stampo vett mean\n");
-    for(i=0; i<Nbin; i++){
+    for(i=0; i<Nbin-1; i++){
+
     	mean[i] = (binVector[i] + binVector[i+1]) / 2;
-    	//printf("%f  ", mean[i]);
-    }
-
-    printf("Stampo vett cont\n");
-
-    for(i=0; i<Nbin; i++){
-    	//printf("%f  ", (cont[i] / N));
     	sum += cont[i];
-    }printf("\n%f \n\n", sum / N);       //stampo cont
+    }
+    printf("exp sum: %f\n",sum);
 
-    //riscrivo cont normalizandolo
-    printf("Stampo vett cont normalizzato\n");
-    for(i=0; i<Nbin; i++)
-    {
-    	cont[i] /= sum;
+    for(i=0; i<Nbin-1; i++){
 
+        .cont[i] /= sum;
     	sum2 += cont[i];
-    }printf("\n%f \n\n", sum2);       //stampo cont normalizzato
+    }
+    printf("\n%f \n\n", sum2);
 
     g=fopen("pdfExp.m", "w");
 
-    if (g==NULL){ //verifica apertura
+    if (g==NULL){
     	printf("pdfExp.m non aperto\n");
     	exit(EXIT_FAILURE);
     }
-
-    //inizio creazione pdfExp.m
     fprintf(g,"x = [");
-    for(i=0;i<Nbin;i++){
+
+    for(i=0;i<Nbin-1;i++){
+
     	fprintf(g, "%f ", mean[i]);
     }
-    fprintf(g, "];\n\n");    //e' il vettore mean
+    fprintf(g, "];\n\nf = [");
 
-    fprintf(g,"f = [");
-    for(i=0;i<Nbin;i++){
+    for(i=0;i<Nbin-1;i++){
+
     	fprintf(g, "%f ", cont[i]);
     }
-    fprintf(g, "];\n\n");    //e' il vettore cont normalizzato
 
-    fprintf(g,"figure;\n\n");
-
-    fprintf(g,"plot(x, f);\n\n");  //fine creazione pdfExp.m
+    fprintf(g,"];\n\nfigure;\n\nplot(x, f);print(gcf, 'exp', '-dpng', '-r300');");
 
     fclose(g);
 
@@ -158,6 +136,7 @@ int main()
 }
 
 double randn(double mean, double stdDev) {
+
     static double spare;
     static int hasSpare = 0;
 
@@ -188,36 +167,10 @@ double* linspace(double a, double b, int Nbin)
 	for(int i=0; i<Nbin; i++){
 
 		x[i] = (double)dn*i+a;
-		//printf("l%d:%f \n",i, x[i]);
 	}
 	return x;
 }
 
-/*double randn(double mu, double sigma)
-{
-	srand(clock());
-	double u1, u2, d, f;
-	static double x1, x2;
-	static int flag=0;
-	if(flag==1)
-	{
-		flag = !flag;
-		return (mu+sigma*(double)x2);
-	}
-	do
-	{
-		u1 = -1 + ((double)rand()/RAND_MAX)*2;
-		u2 = -1 + ((double)rand()/RAND_MAX)*2;
-		d = u1*u1+u2*u2;
-	}
-	while (d>= 1 || d==0);
-	f = sqrt ((-2*log(d))/d);
-	x1 = u1*f;
-	x2 = u2*f;
-	flag=!flag;
-	return (mu+sigma*(double)x1);
-}
-*/
 double rande(double mu)
 {
 	double x,y;
