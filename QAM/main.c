@@ -13,9 +13,9 @@ time_t t;
 FILE *f;
 char *fileName = "QAM.m";
 
-const int nPoints= 20;
-const double minSNR = 1;
-const double maxSNR = 100;
+int nPoints= 20;      //# punti simulazione SNR
+double minSNR = -10;  //[dB]
+double maxSNR = 20;   //[dB]
 
 int N=100000;
 int L=1;   //L-ASK
@@ -36,6 +36,7 @@ convenzioni : vettore di bit v[i]: i=0 -LSB, i=n -MSB
 Segnali I Q: I - stringa LS, Q -stringa MS
 */
 
+// linspace per variazione SNR
 double *SNRarrayGen(int nPts, double min, double max){
 	double *x = (double*)malloc(sizeof(double)* nPts);
 	double c = (max - min)/(nPts-1 );
@@ -46,6 +47,7 @@ double *SNRarrayGen(int nPts, double min, double max){
 	return x;
 }
 
+/////////////////////////
 char *randGen(int nbits){           //genera una stringa di n-bit casuali
 	char *o = (char*)malloc(sizeof(char)*nbits);
     //printf("Word:");            //debug
@@ -57,6 +59,8 @@ char *randGen(int nbits){           //genera una stringa di n-bit casuali
     //printf("\n");               //debug
     return o;
 }
+
+//////////////////converte la stringa di bit in valore
 int string2int(char *in , int nBits){
 	int x=0;
 	for (int i = 0; i < nBits; i++){
@@ -81,7 +85,7 @@ char *IQmapper(int x, char *map,int nLevs, int nbit){ //mappa x in cordinate car
     IQ[1] = map[ x>>nbit & (nLevs-1)];  //Q: è il mapping del valore dei 2 MSB
     return IQ;
 }
-
+//////////////////generatore rumore gaussiano Marsaglia-Bray
 double randn(double mean, double stdDev) {
 
     static double spare;
@@ -104,14 +108,13 @@ double randn(double mean, double stdDev) {
     }
 }
 
+////////////Simula canale AWGN
 double *noiseAdder(char *Ain, double STDEV){
 	double  *S = (double  *)malloc(sizeof(double )*2);
 	S[0] = Ain[0] + randn(0,STDEV);
 	S[1] = Ain[1] + randn(0,STDEV);
 	return S;
 }
-
-//double thresholds[]= {-2.0, 0.0, 2.0};
 
 
 double *thrGen(int nThr){              //genera n-1 soglie per la decisione del simbolo
@@ -122,7 +125,7 @@ double *thrGen(int nThr){              //genera n-1 soglie per la decisione del 
 	}
 	return t;
 }
-char *demod(double *Yn, double *thresholds, char *Map,int h){   //demodulatore segnale QAM
+char *demod(double *Yn, double *thresholds, char *Map,int h){   //decisore a soglie
 	char *z = (char*)malloc(sizeof(char )*2);
 
 	for(int i = 0; i < 2; i++){
@@ -148,8 +151,6 @@ char *demapper(char *In, char *map,int mlev,int nbit){            //demappatore
             }
         }
     }
-    //printf("\n%d",val);             //debug
-    //printf("\n");                   //debug
     for (int i = 0; i < nbit*2; i++)
     {
     	q[i] = 0x01 & val>>i;
@@ -173,27 +174,30 @@ double SNR=0.0;
 ////////////////////////////////////////////////////////////////////////////////////
 int debug =0;
 char go = 0;
+int nl=3;
+int firstl=0;
 int main(){
 	srand((unsigned) time(&t));
 
-	printf("%d iterations, ok? y/n  :",N);
-	while(go != 'y'&&go != 'n'){
-		scanf("%c",&go);
-	}
-	if(go == 'n'){
-		printf("Insert #iteration:");
-		scanf("%d",&N);
-	}
-
-    if(debug == 1) N= 10;
+    if(debug == 1) {
+        N= 10;
+        nl=3;
+        nPoints =1;
+        firstl =nl-1;
+        minSNR = 100;
+    }
+    else{
+        printf("%d iterations, ok? y/n  :",N);
+        while(go != 'y'&&go != 'n'){
+            scanf("%c",&go);
+        }
+        if(go == 'n'){
+            printf("Insert #iteration:");
+            scanf("%d",&N);
+        }
+    }
 	//printf("Insert l :");
 	//scanf("%d",&l);
-	/* while(SNR<=0){
-			    	printf("\nInsert SNR:");
-			    	scanf("%lf",&SNR);
-			    	sigma = (double)sqrt( ((M-1))/(3.0*SNR))*0.707;
-
-			    }*/
 /*
     for(int i=0; i < L; i++){    //debug
         printf("%d\n", greyMap[i]);
@@ -214,7 +218,7 @@ int main(){
     	printf("%lf\n",SNRARRAY[i] );
     }
 
-    for(int currentL =0; currentL<3; currentL++){					// varia l
+    for(int currentL =firstl; currentL<nl; currentL++){					// varia l
 
 
 		l = currentL+1;
@@ -235,7 +239,7 @@ int main(){
 
     	for (int np = 0; np < nPoints; np++){	//varia SNR
 
-		    sigma = (double)sqrt( ((M-1))/(3.0*SNRARRAY[np]))*0.707;
+		    sigma = (double)sqrt( (M-1)/(3.0* pow(10.0,SNRARRAY[np]/10.0) ) );
 
 			printf("\nRun:%d/%d",np+1,nPoints );
 		    printf(" -Noise sigma:%.3lf",sigma);
@@ -303,54 +307,63 @@ int main(){
 		        free(Z);
 		        free(received);
 		        PeSp[np + nPoints*currentL] = 100.0*(double)Errors / (N*n);
-		        PeTh[np + nPoints*currentL] = 100.0*(L-1)*erfc( sqrt(3*SNRARRAY[np]/ (2*(M-1)) ) )/(L*l);
+		        PeTh[np + nPoints*currentL] = 100.0*sqrt(2)*(L-1)*erfc( sqrt(3*pow(10.0,SNRARRAY[np]/10.0)/ (2*(M-1)) ) )/(L*l);
+
+
 		    }
     	}
 	}
-    //printf("\nProbabilita' teorica: %.4f %%",PeS);
-    //printf("\nProbabilita' errore: %.4f %%",Pe);
 
-    f=fopen(fileName, "w");
+//////////////////////////////////// Generazione file Matlab ////////////////////////////
+    if(debug ==0){
 
-    if (f==NULL){
-    	printf("%s non aperto\n",fileName);
-    	exit(EXIT_FAILURE);
-    }
-    else{
-    	fprintf(f, "sn = [");
-    	for (int i = 0; i < nPoints; i++){
+        f=fopen(fileName, "w");
 
-    		fprintf(f, "%lf, ", SNRARRAY[i]);
-    	}
-    	fprintf(f, "];");
+        if (f==NULL){
+            printf("%s non aperto\n",fileName);
+            exit(EXIT_FAILURE);
+        }
+        else{
+            fprintf(f, "sn = [");
+            for (int i = 0; i < nPoints; i++){
 
-    	for (int i = 0; i < 3; i++){
+                fprintf(f, "%lf, ", pow(10.0,SNRARRAY[i]/10.0));
+            }
+            fprintf(f, "];");
 
-    		fprintf(f, "\nPs%d = [", i);
-    		for (int j = 0; j < nPoints; j++){
-    			fprintf(f, "%lf, ", PeSp[j+ i*nPoints]);
-    		}
-    		fprintf(f, "];");
+            for (int i = 0; i < 3; i++){
 
-    		fprintf(f, "\nPt%d = [", i);
-    		for (int j = 0; j < nPoints; j++){
-    			fprintf(f, "%lf, ", PeTh[j+ i*nPoints]);
-    		}
-			fprintf(f, "];");
-    	}
+                fprintf(f, "\nPs%d = [", i);
+                for (int j = 0; j < nPoints; j++){
+                    fprintf(f, "%lf, ", PeSp[j+ i*nPoints]);
+                }
+                fprintf(f, "];");
 
-		fprintf(f, "figure;\n plot(sn, Ps0);\nhold on;\nplot(sn,Pt0);\nhold off;\n");
-		fprintf(f, "title('4-QAM');legend('sperimentale','teorico');xlabel('SNR');ylabel('Pe%');");
+                fprintf(f, "\nPt%d = [", i);
+                for (int j = 0; j < nPoints; j++){
+                    fprintf(f, "%lf, ", PeTh[j+ i*nPoints]);
+                }
+                fprintf(f, "];");
+            }
+            fprintf(f, "\nfigure;\n semilogy(sn, Ps0);\nhold on;\nplot(sn,Pt0);\nhold off;\n");
+            fprintf(f, "title('4-QAM');legend('sperimentale','teorico');xlabel('SNR');ylabel('Pe%');");
+            fprintf(f, "\n%%print(gcf, '4QAM', '-dpng', '-r300');");
 
-		fprintf(f, "figure;\n plot(sn, Ps1);\nhold on;\nplot(sn,Pt1);\nhold off;\n");
-		fprintf(f, "title('16-QAM');legend('sperimentale','teorico');xlabel('SNR');ylabel('Pe%');");
+            fprintf(f, "\nfigure;\n semilogy(sn, Ps1);\nhold on;\nplot(sn,Pt1);\nhold off;\n");
+            fprintf(f, "title('16-QAM');legend('sperimentale','teorico');xlabel('SNR');ylabel('Pe%');");
+            fprintf(f, "\n%%print(gcf, '16QAM', '-dpng', '-r300');");
 
-		fprintf(f, "figure;\n plot(sn, Ps2);\nhold on;\nplot(sn,Pt2);\nhold off;\n");
-		fprintf(f, "title('64-QAM');legend('sperimentale','teorico');xlabel('SNR');ylabel('Pe%');");
+            fprintf(f, "\nfigure;\n semilogy(sn, Ps2);\nhold on;\nplot(sn,Pt2);\nhold off;\n");
+            fprintf(f, "title('64-QAM');legend('sperimentale','teorico');xlabel('SNR');ylabel('Pe%');");
+            fprintf(f, "\n%%print(gcf, '64QAM', '-dpng', '-r300');");
 
+        }
     }
 
     free(thresholds);
     free(greyMap);
+    free(SNRARRAY);
+    free(PeSp);
+    free(PeTh);
     return 0;
 }
