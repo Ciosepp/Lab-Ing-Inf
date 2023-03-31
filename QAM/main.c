@@ -189,7 +189,7 @@ double SNR=0.0;
 ////////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////////
-int debug =1;
+int debug =0;
 char go = 0;
 int nl=3;
 int firstl=0;
@@ -256,7 +256,7 @@ int main(){
 */
     	for (int np = 0; np < nPoints; np++){	//varia SNR
 
-		    sigma = (double)sqrt( 2*(M-1)/(3.0* pow(10.0,SNRARRAY[np]/10.0) ))/sqrt(2);
+		    sigma = (double)sqrt( 2*(M-1)/(3.0* pow(10.0,SNRARRAY[np]/10.0) ))/(sqrt(2));
 
 			printf("\nRun:%d/%d",np+1,nPoints );
 		    printf(" -Noise sigma:%.3lf",sigma);
@@ -319,8 +319,9 @@ int main(){
 		        free(Yn);
 		        free(Z);
 		        free(received);
-		        PeSp[np + nPoints*currentL] = 100.0*(double)Errors / (N*n);
-		        PeTh[np + nPoints*currentL] = 100.0*(L-1)*erfc( sqrt(3*pow(10.0,SNRARRAY[np]/10.0)/ (2*(M-1)) ) )/(L*l);
+		        PeSp[np + nPoints*currentL] = (double)Errors / (N*n);
+		        //PeTh[np + nPoints*currentL] = (L-1)*erfc( sqrt(3*pow(10.0,SNRARRAY[np]/10.0)/ (2*(M-1)) ) )/(L*l);
+		        PeTh[np + nPoints*currentL] = (L-1)*erfc( sqrt(3*pow(10.0,SNRARRAY[np]/10.0)/ (2*(M-1)) ) )/(L*l);
 
 
 		    }
@@ -358,16 +359,16 @@ int main(){
                 }
                 fprintf(f, "];");
             }
-            fprintf(f, "\nfigure;\n semilogy(sn, Ps0);\nhold on;\nplot(sn,Pt0);\nhold off;\n");
-            fprintf(f, "title('4-QAM');legend('sperimentale','teorico');xlabel('SNR');ylabel('Pe%');");
+            fprintf(f, "\nfigure;\n semilogy(sn, Ps0);\nhold on;\nsemilogy(sn,Pt0);\nhold off;\n");
+            fprintf(f, "title('4-QAM');legend('sperimentale','teorico');xlabel('SNR');ylabel('Pe');");
             fprintf(f, "\n%%print(gcf, '4QAM', '-dpng', '-r300');");
 
-            fprintf(f, "\nfigure;\n semilogy(sn, Ps1);\nhold on;\nplot(sn,Pt1);\nhold off;\n");
-            fprintf(f, "title('16-QAM');legend('sperimentale','teorico');xlabel('SNR');ylabel('Pe%');");
+            fprintf(f, "\nfigure;\n semilogy(sn, Ps1);\nhold on;\nsemilogy(sn,Pt1);\nhold off;\n");
+            fprintf(f, "title('16-QAM');legend('sperimentale','teorico');xlabel('SNR');ylabel('Pe');");
             fprintf(f, "\n%%print(gcf, '16QAM', '-dpng', '-r300');");
 
-            fprintf(f, "\nfigure;\n semilogy(sn, Ps2);\nhold on;\nplot(sn,Pt2);\nhold off;\n");
-            fprintf(f, "title('64-QAM');legend('sperimentale','teorico');xlabel('SNR');ylabel('Pe%');");
+            fprintf(f, "\nfigure;\n semilogy(sn, Ps2);\nhold on;\nsemilogy(sn,Pt2);\nhold off;\n");
+            fprintf(f, "title('64-QAM');legend('sperimentale','teorico');xlabel('SNR');ylabel('Pe');");
             fprintf(f, "\n%%print(gcf, '64QAM', '-dpng', '-r300');");
 
         }
