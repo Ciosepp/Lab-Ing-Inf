@@ -31,7 +31,19 @@ char *received;
 
 double *SNRARRAY;
 double *PeSp, *PeTh;
+
+char grey4LUT[3][8]={{0,1,0,0,0,0,0,0},{0,1,3,2,0,0,0,0},{0,1,3,2,6,4,5,7}};
+char greyMap4LUT[3][8]={{0,1,0,0,0,0,0,0},{0,1,3,2,0,0,0,0},{0,1,3,2,5,6,4,7}};
+
 /*
+000 -0
+001 -1
+011 -3
+010 -2
+110 -6
+100 -4
+101 -5
+111 -7
 convenzioni : vettore di bit v[i]: i=0 -LSB, i=n -MSB
 Segnali I Q: I - stringa LS, Q -stringa MS
 */
@@ -69,6 +81,7 @@ int string2int(char *in , int nBits){
 	return x;
 }
 //crea mappa livelli con codifica di Grey
+
 char *mapGenerator(int nLevs){
 	char *IQMAP = (char*)malloc(sizeof(char)*nLevs);
 	IQMAP[0] = -(nLevs-1);
@@ -81,8 +94,10 @@ char *mapGenerator(int nLevs){
 
 char *IQmapper(int x, char *map,int nLevs, int nbit){ //mappa x in cordinate cartesiane
 	char *IQ = (char*)malloc(sizeof(char)*2);
-    IQ[0] = map[ x & (nLevs-1)];     //I: è il mapping del valore dei 2 LSB
-    IQ[1] = map[ x>>nbit & (nLevs-1)];  //Q: è il mapping del valore dei 2 MSB
+
+    IQ[0] = map[ greyMap4LUT[nbit-1][ x & (nLevs-1)]];     //I: è il mapping del valore dei nbit LSB
+    IQ[1] = map[ greyMap4LUT[nbit-1][ x>>nbit & (nLevs-1)]];  //Q: è il mapping del valore dei nbit MSB
+
     return IQ;
 }
 //////////////////generatore rumore gaussiano Marsaglia-Bray
@@ -125,7 +140,7 @@ double *thrGen(int nThr){              //genera n-1 soglie per la decisione del 
 	}
 	return t;
 }
-char *demod(double *Yn, double *thresholds, char *Map,int h){   //decisore a soglie
+char *demod(double *Yn, double *thresholds, char *Map,int h){   //decisore livello a soglie
 	char *z = (char*)malloc(sizeof(char )*2);
 
 	for(int i = 0; i < 2; i++){
@@ -143,11 +158,13 @@ char *demod(double *Yn, double *thresholds, char *Map,int h){   //decisore a sog
 
 char *demapper(char *In, char *map,int mlev,int nbit){            //demappatore
 	char  *q = (char  *)malloc(sizeof(char)*nbit *2);
-	unsigned char val = 0;
+	unsigned char val = 0,k=0;
     for (int i = 0; i < 2; i++){    //Componenti IQ i=0LSB
         for(int j = 0; j < mlev; j++){ //livelli
             if(In[i] == map[j]){    //comparazione livelli alfabeto
-            	val += j<< i*(nbit);
+            k= grey4LUT[nbit-1][j];
+            //printf("\nj%d :%d  ,code:%d",i,j,k);
+            	val += k<< (i*nbit);
             }
         }
     }
@@ -172,19 +189,20 @@ double SNR=0.0;
 ////////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////////
-int debug =0;
+int debug =1;
 char go = 0;
 int nl=3;
 int firstl=0;
 int main(){
 	srand((unsigned) time(&t));
-
+///////////////////////////////////
+//      PARAMETRI SIMULAZIONE DEBUG
     if(debug == 1) {
-        N= 10;
-        nl=3;
-        nPoints =1;
-        firstl =nl-1;
-        minSNR = 100;
+        N= 10;          //# ITERAZIONI
+        nl=3;           //#BIT SOTTOSTRINGA
+        nPoints =1;   //NON TOCCARE
+        firstl =nl-1; //NON TOCCARE
+        minSNR = -10;   //SNR in TEST
     }
     else{
         printf("%d iterations, ok? y/n  :",N);
@@ -196,16 +214,7 @@ int main(){
             scanf("%d",&N);
         }
     }
-	//printf("Insert l :");
-	//scanf("%d",&l);
-/*
-    for(int i=0; i < L; i++){    //debug
-        printf("%d\n", greyMap[i]);
-    }
-    for(int i=0; i < L-1; i++){
-        printf("%f\n", thresholds[i]);
-    }
-*/
+
     //alloco vettore valori SNR
     SNRARRAY = SNRarrayGen(nPoints,minSNR, maxSNR);
 
@@ -224,6 +233,7 @@ int main(){
 		l = currentL+1;
 		n = 2*l;    //numero bit stringa
 	    L=1 ,M =1;	//resetto senno esplode
+
 	    for(int i=0; i<l; i++){
 	        L *=2;  //numero livelli ASK
 	    }
@@ -236,10 +246,17 @@ int main(){
 	    greyMap = mapGenerator(L);  //generazione mappa
 
 	    thresholds = thrGen(L);     //generazione soglie
-
+/*
+        for(int i=0; i < L; i++){    //debug
+            printf("%d\n", greyMap[i]);
+        }
+        for(int i=0; i < L-1; i++){
+            printf("%f\n", thresholds[i]);
+        }
+*/
     	for (int np = 0; np < nPoints; np++){	//varia SNR
 
-		    sigma = (double)sqrt( (M-1)/(3.0* pow(10.0,SNRARRAY[np]/10.0) ) );
+		    sigma = (double)sqrt( 2*(M-1)/(3.0* pow(10.0,SNRARRAY[np]/10.0) ))/sqrt(2);
 
 			printf("\nRun:%d/%d",np+1,nPoints );
 		    printf(" -Noise sigma:%.3lf",sigma);
@@ -248,7 +265,7 @@ int main(){
 
 		    for(int z=0; z<N; z++){     //iterazioni Monte Carlo
 
-		        // punto 1: genero un stringa random di 4 bit
+		        // punto 1: genero un stringa random di n bit
 		    	word = randGen(n);
 
 		        if(debug == 1){
@@ -256,9 +273,7 @@ int main(){
 		            for (int i = 0; i < n; i++){
 		                printf("%d",word[n-1-i]);
 		            }
-
 		        }
-
 		            // punto 2
 		        a= string2int(word,n);//converto in un valore
 		        if(debug == 1)printf("\nconv:%d",a);                       //debug
@@ -290,8 +305,6 @@ int main(){
 		            }
 		            printf("\n");
 		        }
-
-
 		        for (int i = 0; i < n; i++)
 		        {
 		        	if(word[i] != received[i]){
@@ -307,7 +320,7 @@ int main(){
 		        free(Z);
 		        free(received);
 		        PeSp[np + nPoints*currentL] = 100.0*(double)Errors / (N*n);
-		        PeTh[np + nPoints*currentL] = 100.0*sqrt(2)*(L-1)*erfc( sqrt(3*pow(10.0,SNRARRAY[np]/10.0)/ (2*(M-1)) ) )/(L*l);
+		        PeTh[np + nPoints*currentL] = 100.0*(L-1)*erfc( sqrt(3*pow(10.0,SNRARRAY[np]/10.0)/ (2*(M-1)) ) )/(L*l);
 
 
 		    }
@@ -327,7 +340,7 @@ int main(){
             fprintf(f, "sn = [");
             for (int i = 0; i < nPoints; i++){
 
-                fprintf(f, "%lf, ", pow(10.0,SNRARRAY[i]/10.0));
+                fprintf(f, "%lf, ",SNRARRAY[i]);
             }
             fprintf(f, "];");
 
